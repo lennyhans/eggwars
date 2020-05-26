@@ -9,7 +9,7 @@
 ----------------------------------------------------------------------
 --]]
 
--- Supports a maximum of 8 players currently  
+-- Supports a maximum of 8 players currently
 -- TODO: Make always day to comfortable fight
 
 eggwars = {}
@@ -24,6 +24,7 @@ local register_chat_handler = dofile(eggwars.MP.."/register_commands.lua")
 -- SECION: Coordinates --
 -------------------------
 local base_y_layer = 1000 + 100;
+local ew_max_players = 8
 eggwars.waiting_area = {x=0,y=1002,z=0};
 local centre = {x=0,y=base_y_layer,z=0}
 eggwars.islands = {
@@ -120,16 +121,16 @@ end
 
 -- WIP reset function to restart game
 reset = function ()
-   removeDrops();
-   --minetest.delete_area({x=-80, y=50, z=-80}, {x=80,y=150, z=80})
-   players_alive = {};
-  	match_running = false;
-   --centrespawn();
-   --for m=1,#players_alive do
-   --  if(m < #islands) then
-   --    islandspawn(m)
-   --  end
-   --end
+  removeDrops();
+  --minetest.delete_area({x=-80, y=50, z=-80}, {x=80,y=150, z=80})
+  players_alive = {};
+  match_running = false;
+  --centrespawn();
+  --for m=1,#players_alive do
+  --  if(m < #islands) then
+  --    islandspawn(m)
+  --  end
+  --end
 end
 
 -- Function to spawn centre island
@@ -190,7 +191,7 @@ minetest.register_on_dieplayer(function(player)
         minetest.chat_send_all(minetest.colorize("green", "*** " .. players_alive[1] .. " has won!"))
         reset();
       elseif #players_alive == 0 then
-      	minetest.chat_send_all(minetest.colorize("green", "*** " .. player:get_player_name() .. " has won!"))
+        minetest.chat_send_all(minetest.colorize("green", "*** " .. player:get_player_name() .. " has won!"))
         reset();
       end
     else
@@ -364,6 +365,7 @@ ew.simulateStart = function()
     local current_island_spawn = eggwars.islands[k];
     current_island_spawn.y = current_island_spawn.y + 10;
     minetest.debug("Setting spawn to player "..minetest.pos_to_string(eggwars.islands[k]));
+    current_island_spawn.y = current_island_spawn.y - 10;
     --player:setpos(eggwars.islands[k])
     --player_i[player_n] = eggwars.islands[k];
     --players_alive[i] = player_n;
@@ -378,32 +380,29 @@ end
  --- end testing
 
 ew.register_player = function(name, param)
-	if #eggwars.registered_players < 8 then
+  if #eggwars.registered_players < ew_max_players then
     if match_running == false then
-    local contd = true;
-    for p=1,#eggwars.registered_players do
-      if eggwars.registered_players[p] == name then
-        contd = false;
+      -- Register player if not registered already
+      local player_in_game_pos = is_player_registered(name)
+      if player_in_game_pos ~= nil then
         minetest.chat_send_player(name,"You have already registered")
+      else
+        eggwars.registered_players[#eggwars.registered_players+1] = name;
       end
-    end
-    if contd then
-      eggwars.registered_players[#eggwars.registered_players+1] = name;
-    end
-      if #eggwars.registered_players == 8 then
+      -- if the match is full start
+      if #eggwars.registered_players == ew_max_players then
         ew.begin_match();
       else
-				minetest.chat_send_all(#eggwars.registered_players .. "/8 players have registered! Use /register to join.");
-			end
+        minetest.chat_send_all(#eggwars.registered_players .. "/".. ew_max_players.." players have registered! Use /register to join.");
+      end
     else
-			minetest.chat_send_player(name,"Sorry. A match is already running. Please use /start once their match has finished.");
+      minetest.chat_send_player(name,"Sorry. A match is already running. Please use /start once their match has finished.");
 		end
 	else
-		minetest.chat_send_player(name,"Sorry. 8 players have already registered. Try registering after their game has begun.")
+		minetest.chat_send_player(name,"Sorry. " .. ew_max_players.." players have already registered. Try registering after their game has begun.")
 	end
-	go_lobby(name);
-
-end;
+	go_lobby(name)
+end
 
 ew.who_is_online = function(name, param)
 	local text = "Players in match: "
@@ -429,7 +428,7 @@ end
 
 -- CHAT COMMANDS
 --
-local register_chat_init_result =  register_chat_handler._init(ew)
+local register_chat_init_result = register_chat_handler._init(ew)
 if ( register_chat_init_result.status ~= 0) then 
   minetest.debug(register_chat_init_result.message)
 end
