@@ -24,6 +24,7 @@ local register_chat_handler = dofile(eggwars.MP.."/register_commands.lua")
 -- SECION: Coordinates --
 -------------------------
 local base_y_layer = 1000 + 100;
+local ew_max_players = 8
 eggwars.waiting_area = {x=0,y=1002,z=0};
 local centre = {x=0,y=base_y_layer,z=0}
 eggwars.islands = {
@@ -483,23 +484,22 @@ end
  --- end testing
 
 ew.register_player = function(name, param)
-	if #eggwars.registered_players < 8 then
+  if #eggwars.registered_players < ew_max_players then
     if match_running == false then
-    local contd = true;
-    for p=1,#eggwars.registered_players do
-      if eggwars.registered_players[p] == name then
-        contd = false;
+      -- Register player if not registered already
+      local player_in_game_pos = is_player_registered(name)
+      if player_in_game_pos ~= nil then
         minetest.chat_send_player(name,"You have already registered")
+      else
+        eggwars.registered_players[#eggwars.registered_players+1] = name;
       end
-    end
-    if contd then
-      eggwars.registered_players[#eggwars.registered_players+1] = name;
-    end
-      if #eggwars.registered_players == 8 then
+      -- if the match is full start
+      if #eggwars.registered_players == ew_max_players then
         ew.begin_match();
       else
-				minetest.chat_send_all(#eggwars.registered_players .. "/8 players have registered! Use /register to join.");
-			end
+        minetest.chat_send_all(#eggwars.registered_players .. "/".. ew_max_players..
+          " players have registered! Use /register to join.");
+      end
     else
       minetest.chat_send_player(name,
         "Sorry. A match is already running. Please use /start once their match has finished.");
@@ -508,9 +508,8 @@ ew.register_player = function(name, param)
     minetest.chat_send_player(name,
       "Sorry. 8 players have already registered. Try registering after their game has begun.")
 	end
-	go_lobby(name);
-
-end;
+	go_lobby(name)
+end
 
 ew.who_is_online = function(name, param)
 	local text = "Players in match: "
